@@ -3,8 +3,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### Personal notes ###
-/doc
+### Configuration file ###
+application.yaml
 
 ### IntelliJ IDEA ###
 .idea/
