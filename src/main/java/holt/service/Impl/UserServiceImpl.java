@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +38,7 @@ public class UserServiceImpl implements UserService {
      * User login
      * @param username user's username, should not include special characters
      * @param password user's password
-     * @return
+     * @return User without sensitive information
      */
     public User userLogin(String username, String password, HttpServletRequest request) {
         // Check input
@@ -69,13 +72,44 @@ public class UserServiceImpl implements UserService {
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
 
         // Remove sensitive user information
-        User safeUser = new User();
-        safeUser.setUsername(username);
-        safeUser.setProfile(user.getProfile());
-        safeUser.setName(user.getName());
-        safeUser.setAvatar(user.getAvatar());
-        safeUser.setEmail(user.getEmail());
-        return safeUser;
+        return getSafeUser(user);
+    }
+
+    /**
+     * Search a user information according to its id
+     * @param id user id
+     * @return User without sensitive information
+     */
+    @Override
+    public User searchUser(Long id) {
+        Optional<User> userOptional = userRepository.findById(id);
+        return userOptional.map(this::getSafeUser).orElse(null);
+    }
+
+    /**
+     * Display a list of users
+     * @return a list of users without sensitive information
+     */
+    @Override
+    public List<User> searchUsers() {
+        List<User> users= (List<User>) userRepository.findAll();
+        return users.stream().map(this::getSafeUser).toList();
+    }
+
+    /**
+     * Delete a user from the database according to the user id
+     * @param id user id
+     * @return true if the deletion is successful, or else return false
+     */
+    @Override
+    public boolean deleteUser(Long id) {
+        Optional<User> userOptional = userRepository.findById(id);
+        if (userOptional.isPresent()) {
+            userRepository.deleteById(id);
+            return true;
+        } else {
+            return false;
+        }
     }
 
 
@@ -122,4 +156,15 @@ public class UserServiceImpl implements UserService {
         userRepository.save(newUser);
         return 1;
     }
+
+    private User getSafeUser(User user) {
+        User safeUser = new User();
+        safeUser.setUsername(user.getUsername());
+        safeUser.setProfile(user.getProfile());
+        safeUser.setName(user.getName());
+        safeUser.setAvatar(user.getAvatar());
+        safeUser.setEmail(user.getEmail());
+        return safeUser;
+    }
+
 }

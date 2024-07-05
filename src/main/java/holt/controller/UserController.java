@@ -1,15 +1,20 @@
 package holt.controller;
 
+import holt.constant.UserConstant;
 import holt.model.User;
 import holt.model.request.UserLoginRequest;
 import holt.model.request.UserRegisterRequest;
 import holt.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Objects;
+
+import static holt.constant.UserConstant.ADMIN_ROLE;
+
 
 /**
  * @author Weiyang Wu
@@ -47,4 +52,41 @@ public class UserController {
         return userService.userLogin(username, password, request);
     }
 
+    @GetMapping("/search/{id}")
+    public User searchUser(@PathVariable Long id, HttpServletRequest request) {
+        checkLogin(request);
+        if (id == null) {
+            System.out.println("Null username, error");
+            return null;
+        }
+        return userService.searchUser(id);
+    }
+
+    @GetMapping("/searchAll")
+    public List<User> searchUsers(HttpServletRequest request) {
+        checkLogin(request);
+        checkAdmin(request);
+        return userService.searchUsers();
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public boolean deleteUser(@PathVariable Long id, HttpServletRequest request) {
+        checkLogin(request);
+        checkAdmin(request);
+        return userService.deleteUser(id);
+    }
+
+    private void checkAdmin(HttpServletRequest request) {
+        User user = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        boolean isAdmin = user.getRole().equals(ADMIN_ROLE);
+        if (!isAdmin) {
+            throw new Error("The user does not have enough privileges to perform this operation");
+        }
+    }
+
+    private void checkLogin(HttpServletRequest request) {
+        if (request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE) == null) {
+            throw new Error("The session does not contain any user");
+        }
+    }
 }
