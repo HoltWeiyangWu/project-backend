@@ -1,12 +1,13 @@
 package holt.controller;
 
 import holt.model.User;
-import holt.model.UserRegisterRequest;
+import holt.model.request.UserLoginRequest;
+import holt.model.request.UserRegisterRequest;
 import holt.service.UserService;
-import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,7 +25,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public Long register(UserRegisterRequest registerRequest) {
+    public Long register(@RequestBody UserRegisterRequest registerRequest) {
 
         String username = registerRequest.getUsername();
         String password = registerRequest.getPassword();
@@ -34,6 +35,16 @@ public class UserController {
         }
         long result = userService.userRegister(username, password, confirmPassword);
         return result;
+    }
+
+    @PostMapping("/login")
+    public User login(@RequestBody UserLoginRequest loginRequest, HttpServletRequest request) {
+        String username = loginRequest.getUsername();
+        String password = loginRequest.getPassword();
+        if (StringUtils.isAnyBlank(username, password)) {
+            return null;
+        }
+        return userService.userLogin(username, password, request);
     }
 
 }

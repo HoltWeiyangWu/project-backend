@@ -1,4 +1,4 @@
-package holt.model;
+package holt.model.request;
 
 import lombok.Data;
 

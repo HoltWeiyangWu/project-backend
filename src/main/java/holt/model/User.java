@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+
 import java.util.Date;
 
 @Getter
@@ -46,6 +47,7 @@ public class User {
 
     @Size(max = 256)
     @NotNull
+    @ColumnDefault("user")
     @Column(name = "role", nullable = false, length = 256)
     private String role;
 
@@ -63,4 +65,21 @@ public class User {
     @Column(name = "email", length = 512)
     private String email;
 
+    @PrePersist
+    protected void onCreate() {
+        if (createTime == null) {
+            createTime = new Date();
+        }
+        if (updateTime == null) {
+            updateTime = new Date();
+        }
+        if (role == null) {
+            role = "user";
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updateTime = new Date();
+    }
 }
