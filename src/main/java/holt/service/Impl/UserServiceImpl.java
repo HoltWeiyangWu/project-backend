@@ -93,7 +93,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> searchUsers() {
         List<User> users= (List<User>) userRepository.findAll();
-        return users.stream().map(this::getSafeUser).toList();
+        users.forEach(user->{user.setPassword(null);});
+        return users;
     }
 
     /**
@@ -166,5 +167,4 @@ public class UserServiceImpl implements UserService {
         safeUser.setEmail(user.getEmail());
         return safeUser;
     }
-
 }
