@@ -3,16 +3,22 @@ package holt.service.Impl;
 import holt.model.User;
 import holt.repository.UserRepository;
 import holt.service.UserService;
+import holt.uitl.JwtUtil;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static holt.constant.UserConstant.ADMIN_ROLE;
 
 /**
  * @author Weiyang Wu
@@ -23,7 +29,6 @@ import java.util.regex.Pattern;
 public class UserServiceImpl implements UserService {
     public static final int USERNAME_MIN = 4;
     public static final int PASSWORD_MIN = 8;
-    private static final String USER_LOGIN_STATE = "user_login_state";
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -40,7 +45,7 @@ public class UserServiceImpl implements UserService {
      * @param password user's password
      * @return User without sensitive information
      */
-    public User userLogin(String username, String password, HttpServletRequest request) {
+    public User userLogin(String username, String password, HttpServletResponse response) {
         // Check input
         if (username.length() < USERNAME_MIN) {
             return null;
@@ -68,8 +73,10 @@ public class UserServiceImpl implements UserService {
             log.info("incorrect password");
             return null;
         }
-        // Record session attribute
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+
+        // Return a JWT to the client
+        String jwt = JwtUtil.generateToken(user.getUsername(), user.getId());
+        response.setHeader("token", jwt);
 
         // Remove sensitive user information
         return getSafeUser(user);
@@ -154,10 +161,16 @@ public class UserServiceImpl implements UserService {
         User newUser = new User();
         newUser.setUsername(username);
         newUser.setPassword(encryptedPassword);
+        newUser.setName("Anonymous User");
         userRepository.save(newUser);
         return 1;
     }
 
+    /**
+     * Strip all the sensitive information from the given user object
+     * @param user User object retrieved from the database
+     * @return User object without sensitive information
+     */
     private User getSafeUser(User user) {
         User safeUser = new User();
         safeUser.setUsername(user.getUsername());
@@ -166,5 +179,24 @@ public class UserServiceImpl implements UserService {
         safeUser.setAvatar(user.getAvatar());
         safeUser.setEmail(user.getEmail());
         return safeUser;
+    }
+
+    /**
+     * Check if the current user exists and if the user is admin
+     * @param request Http request intercepted from the Login Interceptor
+     */
+    public void checkAdmin(HttpServletRequest request) {
+        String username = (String) request.getAttribute("username");
+        Long id = Long.valueOf(request.getAttribute("id").toString());
+        User claimedUser = userRepository.findById(id).orElseThrow(Error::new);
+        boolean correctUsername = claimedUser.getUsername().equals(username);
+        if (!correctUsername) {
+            throw new Error("JWT contains non-existed user");
+        }
+
+        boolean isAdmin = claimedUser.getRole().equals(ADMIN_ROLE);
+        if (!isAdmin) {
+            throw new Error("User is not an admin");
+        }
     }
 }
