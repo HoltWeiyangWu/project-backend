@@ -67,6 +67,12 @@ public class UserController {
     @DeleteMapping("/delete/{id}")
     public boolean deleteUser(@PathVariable Long id, HttpServletRequest request) {
         userService.checkAdmin(request);
+
+        // Admin cannot delete its own account
+        Long userId = Long.valueOf(request.getAttribute("id").toString());
+        if (userId.equals(id)) {
+            return false;
+        }
         return userService.deleteUser(id);
     }
 }
