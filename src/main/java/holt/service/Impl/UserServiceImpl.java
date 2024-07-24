@@ -1,17 +1,17 @@
 package holt.service.Impl;
 
+import holt.common.ErrorCode;
+import holt.exception.BusinessException;
 import holt.model.User;
 import holt.repository.UserRepository;
 import holt.service.UserService;
 import holt.uitl.JwtUtil;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,31 +47,32 @@ public class UserServiceImpl implements UserService {
      */
     public User userLogin(String username, String password, HttpServletResponse response) {
         // Check input
+        if (username == null || password == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "Empty username or password");
+        }
         if (username.length() < USERNAME_MIN) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Username too short");
         }
         if (password.length() < PASSWORD_MIN) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Password too short");
         }
 
         // No special characters in username
         String validPattern = "^[a-zA-Z0-9]{"+ USERNAME_MIN +",}$";
         Matcher matcher = Pattern.compile(validPattern).matcher(username);
         if (!matcher.find()) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid username format");
         }
 
         // Compare passwords
         User user = userRepository.findByUsername(username);
         if (user == null) {
-            log.info("user is not found with the given password");
-            return null;
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "Username not found");
         }
 
         String encryptedPassword = user.getPassword();
         if (!bCryptPasswordEncoder.matches(password, encryptedPassword)) {
-            log.info("incorrect password");
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Wrong password");
         }
 
         // Return a JWT to the client
@@ -90,7 +91,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public User searchUser(Long id) {
         Optional<User> userOptional = userRepository.findById(id);
-        return userOptional.map(this::getSafeUser).orElse(null);
+        return userOptional
+                .map(this::getSafeUser)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "User not found"));
     }
 
     /**
@@ -116,7 +119,7 @@ public class UserServiceImpl implements UserService {
             userRepository.deleteById(id);
             return true;
         } else {
-            return false;
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "User not found");
         }
     }
 
@@ -132,26 +135,26 @@ public class UserServiceImpl implements UserService {
     public long userRegister(String username, String password, String confirmPassword) {
         // Check input
         if (username.length() < USERNAME_MIN) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Username too short");
         }
         if (password.length() < PASSWORD_MIN) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Password too short");
         }
         if (!confirmPassword.equals(password) ) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Confirm password not match");
         }
 
         // No special characters in username
         String validPattern = "^[a-zA-Z0-9]{"+ USERNAME_MIN +",}$";
         Matcher matcher = Pattern.compile(validPattern).matcher(username);
         if (!matcher.find()) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid username format");
         }
 
         // No repeated username
         User user = userRepository.findByUsername(username);
         if (user != null) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Username is already in use");
         }
 
         // Encryption
@@ -191,12 +194,12 @@ public class UserServiceImpl implements UserService {
         User claimedUser = userRepository.findById(id).orElseThrow(Error::new);
         boolean correctUsername = claimedUser.getUsername().equals(username);
         if (!correctUsername) {
-            throw new Error("JWT contains non-existed user");
+            throw new BusinessException(ErrorCode.NO_AUTH, "JWT contains non-existed user");
         }
 
         boolean isAdmin = claimedUser.getRole().equals(ADMIN_ROLE);
         if (!isAdmin) {
-            throw new Error("User is not an admin");
+            throw new BusinessException(ErrorCode.NO_AUTH, "JWT contains non-admin user");
         }
     }
 }

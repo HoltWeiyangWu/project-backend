@@ -3,7 +3,6 @@ package holt.service;
 import holt.model.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 

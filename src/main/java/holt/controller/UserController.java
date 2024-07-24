@@ -1,5 +1,9 @@
 package holt.controller;
 
+import holt.common.BaseResponse;
+import holt.common.ErrorCode;
+import holt.common.ResultUtil;
+import holt.exception.BusinessException;
 import holt.model.User;
 import holt.model.request.UserLoginRequest;
 import holt.model.request.UserRegisterRequest;
@@ -27,52 +31,57 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public Long register(@RequestBody UserRegisterRequest registerRequest) {
-
+    public BaseResponse<Long> register(@RequestBody UserRegisterRequest registerRequest) {
+        if (registerRequest == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "No register request");
+        }
         String username = registerRequest.getUsername();
         String password = registerRequest.getPassword();
         String confirmPassword = registerRequest.getConfirmPassword();
         if (StringUtils.isAnyBlank(username, password, confirmPassword)) {
-            return null;
+            throw new BusinessException(ErrorCode.NULL_ERROR, "Null inputs");
         }
-        long result = userService.userRegister(username, password, confirmPassword);
-        return result;
+        Long result = userService.userRegister(username, password, confirmPassword);
+        return ResultUtil.success(result);
     }
 
     @PostMapping("/login")
-    public User login(@RequestBody UserLoginRequest loginRequest, HttpServletResponse response) {
+    public BaseResponse<User> login(@RequestBody UserLoginRequest loginRequest, HttpServletResponse response) {
         String username = loginRequest.getUsername();
         String password = loginRequest.getPassword();
         if (StringUtils.isAnyBlank(username, password)) {
-            return null;
+            throw new BusinessException(ErrorCode.NULL_ERROR, "Null login request");
         }
-        return userService.userLogin(username, password, response);
+        User user = userService.userLogin(username, password, response);
+        return ResultUtil.success(user);
     }
 
     @GetMapping("/search/{id}")
-    public User searchUser(@PathVariable Long id, HttpServletRequest request) {
+    public BaseResponse<User> searchUser(@PathVariable Long id, HttpServletRequest request) {
         if (id == null) {
-            System.out.println("Null username, error");
-            return null;
+            throw new BusinessException(ErrorCode.NULL_ERROR, "Null id");
         }
-        return userService.searchUser(id);
+        User user = userService.searchUser(id);
+        return ResultUtil.success(user);
     }
 
     @GetMapping("/searchAll")
-    public List<User> searchUsers(HttpServletRequest request) {
+    public BaseResponse<List<User>> searchUsers(HttpServletRequest request) {
         userService.checkAdmin(request);
-        return userService.searchUsers();
+        List<User> users = userService.searchUsers();
+        return ResultUtil.success(users);
     }
 
     @DeleteMapping("/delete/{id}")
-    public boolean deleteUser(@PathVariable Long id, HttpServletRequest request) {
+    public BaseResponse<Boolean> deleteUser(@PathVariable Long id, HttpServletRequest request) {
         userService.checkAdmin(request);
 
-        // Admin cannot delete its own account
+        // Admin cannot delete his/her own account
         Long userId = Long.valueOf(request.getAttribute("id").toString());
         if (userId.equals(id)) {
-            return false;
+            throw new BusinessException(ErrorCode.NOT_ALLOWED, "Cannot delete self");
         }
-        return userService.deleteUser(id);
+        Boolean result = userService.deleteUser(id);
+        return ResultUtil.success(result);
     }
 }
