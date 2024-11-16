@@ -21,9 +21,7 @@ import java.util.List;
  * @date 2024/7/4 12:15
  */
 @RestController
-@CrossOrigin(origins = {"https://holtwywproject.me", "https://holtproject-1d505295c3f4.herokuapp.com",
-        "https://www.holtwywproject.me"},
-        allowCredentials = "true", exposedHeaders = "token")
+@CrossOrigin(origins = "https://holtwywproject.me",allowCredentials = "true", exposedHeaders = "token")
 @RequestMapping("/user")
 public class UserController {
     private final UserService userService;
