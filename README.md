@@ -27,9 +27,9 @@ Please refer to https://github.com/HoltWeiyangWu/project-frontend for detailed i
 
 
 ## Reference and License
-### Backend application
+### Frontend application
 
-> https://github.com/HoltWeiyangWu/project-backend
+> https://github.com/HoltWeiyangWu/project-frontend
 
 ### License
 Distributed under the MIT License.

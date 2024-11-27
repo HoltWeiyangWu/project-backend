@@ -5,13 +5,16 @@ import holt.common.ErrorCode;
 import holt.common.ResultUtil;
 import holt.exception.BusinessException;
 import holt.model.User;
+import holt.model.request.UpdateSettingRequest;
 import holt.model.request.UserLoginRequest;
 import holt.model.request.UserRegisterRequest;
 import holt.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,7 +24,7 @@ import java.util.List;
  * @date 2024/7/4 12:15
  */
 @RestController
-@CrossOrigin(origins = "https://holtwywproject.me",allowCredentials = "true", exposedHeaders = "token")
+@CrossOrigin(origins = "${cors.whitelist}",allowCredentials = "true", exposedHeaders = "token")
 @RequestMapping("/user")
 public class UserController {
     private final UserService userService;
@@ -82,6 +85,16 @@ public class UserController {
             throw new BusinessException(ErrorCode.NOT_ALLOWED, "Cannot delete self");
         }
         Boolean result = userService.deleteUser(id);
+        return ResultUtil.success(result);
+    }
+
+
+    @PostMapping("/setting")
+    public BaseResponse<User> updateSetting(@RequestPart(value = "avatar", required = false) MultipartFile avatar,
+                                            @RequestPart("data") UpdateSettingRequest settingRequest,
+                                            HttpServletRequest request) {
+        User user = userService.retrieveUser(request);
+        User result = userService.updateSetting(settingRequest, avatar, user);
         return ResultUtil.success(result);
     }
 }

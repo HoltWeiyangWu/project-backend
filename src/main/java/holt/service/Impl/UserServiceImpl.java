@@ -1,9 +1,12 @@
 package holt.service.Impl;
 
 import holt.common.ErrorCode;
+import holt.constant.S3FolderName;
 import holt.exception.BusinessException;
 import holt.model.User;
+import holt.model.request.UpdateSettingRequest;
 import holt.repository.UserRepository;
+import holt.service.S3Service;
 import holt.service.UserService;
 import holt.uitl.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,10 +37,13 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
+    private final S3Service s3Service;
+
     @Autowired
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, S3Service s3Service) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = new BCryptPasswordEncoder();
+        this.s3Service = s3Service;
     }
 
     /**
@@ -170,6 +177,30 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * Updates user setting, stores avatar to AWS S3
+     * @param settingRequest request that contains user information that should be updated
+     * @param user The user who requests for updating setting
+     * @return True if update is successful
+     */
+    public User updateSetting(UpdateSettingRequest settingRequest, MultipartFile avatar, User user) {
+        String name = settingRequest.getName();
+        String email = settingRequest.getEmail();
+        String profile = settingRequest.getProfile();
+        Long userId = user.getId();
+
+        if (avatar != null) {
+            String avatarURL = s3Service.uploadFile(avatar, S3FolderName.AVATAR, userId);
+            user.setAvatar(avatarURL);
+        }
+
+        user.setName(name);
+        user.setEmail(email);
+        user.setProfile(profile);
+        userRepository.save(user);
+        return getSafeUser(user);
+    }
+
+    /**
      * Strip all the sensitive information from the given user object
      * @param user User object retrieved from the database
      * @return User object without sensitive information
@@ -189,6 +220,28 @@ public class UserServiceImpl implements UserService {
      * @param request Http request intercepted from the Login Interceptor
      */
     public void checkAdmin(HttpServletRequest request) {
+        User claimedUser = retrieveUser(request);
+
+        boolean isAdmin = claimedUser.getRole().equals(ADMIN_ROLE);
+        if (!isAdmin) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "JWT contains non-admin user");
+        }
+    }
+
+    /**
+     * Check if the current user exists
+     * @param request Http request intercepted from the Login Interceptor
+     */
+    public void checkUser(HttpServletRequest request) {
+        retrieveUser(request);
+    }
+
+    /**
+     * Validate if the claimed user exists in the database
+     * @param request Http request intercepted from the Login Interceptor
+     * @return a user object if the user exists
+     */
+    public User retrieveUser(HttpServletRequest request) {
         String username = (String) request.getAttribute("username");
         Long id = Long.valueOf(request.getAttribute("id").toString());
         User claimedUser = userRepository.findById(id).orElseThrow(Error::new);
@@ -196,10 +249,6 @@ public class UserServiceImpl implements UserService {
         if (!correctUsername) {
             throw new BusinessException(ErrorCode.NO_AUTH, "JWT contains non-existed user");
         }
-
-        boolean isAdmin = claimedUser.getRole().equals(ADMIN_ROLE);
-        if (!isAdmin) {
-            throw new BusinessException(ErrorCode.NO_AUTH, "JWT contains non-admin user");
-        }
+        return claimedUser;
     }
 }
