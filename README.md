@@ -8,6 +8,7 @@ The project is designed to simulate a real-ward scenario where users are able to
 
 ## Backend Features
 - Java Springboot framework (e.g. Spring JPA, Spring MVC)
+- Image storage with Amazon Web Service(AWS) S3
 - CRUD for user managements
 - JWT interceptor
 - Heroku deployment with MySQL
@@ -19,11 +20,9 @@ Please refer to https://github.com/HoltWeiyangWu/project-frontend for detailed i
 ## Quick Start
 
 - **Set up:** Download Java. Use Oracle OpenJDK 22.0.1.
-- **Environment variable:** 
-  - Change MySQL database connection details (i.e. url, username, password) in application.yaml
-  - Change "@CrossOrigin" in "UserController" to avoid CORS issue
+- **Environment variable:** Add environment variables specified  in application.yaml (e.g. url, AWS S3)
 - **Build:** Build Maven dependencies and build java application.
-- **Start:** Run "BackendApplication" main function.
+- **Start:** Run "BackendApplication" main function with environment variables.
 
 
 ## Reference and License
