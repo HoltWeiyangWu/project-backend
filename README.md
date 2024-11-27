@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a full-stack web application built as a personal learning exercise to explore modern web development technologies. The application features a Spring Boot backend connected to a MySQL database for managing and storing data, and modifies a React frontend template provided by Minimal UI.
+This project (https://holtwywproject.me) is a full-stack web application built as a personal learning exercise to explore modern web development technologies. The application features a Spring Boot backend connected to a MySQL database for managing and storing data, and modifies a React frontend template provided by Minimal UI.
 
 The project is designed to simulate a real-ward scenario where users are able to search product information and administrators are able to perform user and product management CRUD (Create, Read, Update, Delete) operations. The website is deployed with Heroku and can be potentially deployed with AWS or Azure for future needs.
 
